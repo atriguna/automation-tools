@@ -67,7 +67,7 @@ export default function UIAutomation() {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      const response = await fetch("https://automation-tools-production.up.railway.app/api/run-automation", {
+      const response = await fetch("https://backend-automation-production-badd.up.railway.app/api/run-automation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, steps, headless }),
