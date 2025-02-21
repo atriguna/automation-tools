@@ -2,18 +2,28 @@
 
 import { useState } from "react";
 import Papa from "papaparse";
+import Image from "next/image";
+
+type Step = {
+  action: string;
+  xpath: string;
+  value?: string;
+};
+
+type StepResult = {
+  action: string;
+  xpath: string;
+  value?: string;
+  status: "sukses" | "gagal";
+  screenshotUrl?: string;
+  error?: string;
+};
 
 export default function UIAutomation() {
-  type Step = {
-    action: string;
-    xpath: string;
-    value?: string;
-  };
-
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState<string>("");
   const [steps, setSteps] = useState<Step[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [headless, setHeadless] = useState(true); // Default: Headless Mode ON
+  const [loading, setLoading] = useState<boolean>(false);
+  const [headless, setHeadless] = useState<boolean>(true);
   const [screenshotResults, setScreenshotResults] = useState<string[]>([]);
   const [reportUrl, setReportUrl] = useState<string | null>(null);
 
@@ -24,11 +34,9 @@ export default function UIAutomation() {
 
   // Mengupdate Step
   const updateStep = (index: number, field: keyof Step, value: string) => {
-    setSteps((prevSteps) => {
-      const newSteps = [...prevSteps];
-      newSteps[index] = { ...newSteps[index], [field]: value };
-      return newSteps;
-    });
+    const newSteps = [...steps];
+    newSteps[index][field] = value;
+    setSteps(newSteps);
   };
 
   // Menghapus Step
@@ -49,7 +57,7 @@ export default function UIAutomation() {
           action: typeof row.action === "string" ? row.action.trim() : "",
           xpath: typeof row.xpath === "string" ? row.xpath.trim() : "",
           value: typeof row.value === "string" ? row.value.trim() : undefined,
-        }));               
+        }));        
         setSteps(parsedSteps);
       },
     });
@@ -57,16 +65,6 @@ export default function UIAutomation() {
 
   // Submit Automation
   const handleSubmit = async () => {
-    if (!url) {
-      alert("Masukkan URL terlebih dahulu!");
-      return;
-    }
-
-    if (steps.length === 0) {
-      alert("Tambahkan setidaknya satu langkah untuk dijalankan!");
-      return;
-    }
-
     setLoading(true);
     try {
       const response = await fetch("/api/run-automation", {
@@ -76,8 +74,10 @@ export default function UIAutomation() {
       });
 
       const result = await response.json();
-      setScreenshotResults(result.stepResults.map((step: any) => step.screenshotUrl));
-      setReportUrl(result.reportUrl);
+      const parsedStepResults: StepResult[] = result.stepResults || [];
+
+      setScreenshotResults(parsedStepResults.map((step) => step.screenshotUrl || ""));
+      setReportUrl(result.reportUrl || null);
     } catch (error) {
       console.error("Error:", error);
       alert("Gagal menjalankan automation");
@@ -87,8 +87,8 @@ export default function UIAutomation() {
   };
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">UI Automation Input Form</h1>
+    <div className="p-6 max-w-2xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4 text-center">UI Automation Input Form</h1>
 
       {/* Input URL */}
       <label className="block font-semibold">Website URL:</label>
@@ -123,7 +123,7 @@ export default function UIAutomation() {
 
       {/* List Steps */}
       {steps.map((step, index) => (
-        <div key={index} className="border p-3 mb-3 rounded relative bg-gray-100">
+        <div key={index} className="border p-3 mb-3 rounded relative">
           <button
             onClick={() => removeStep(index)}
             className="absolute top-1 right-1 text-red-500 text-lg font-bold"
@@ -141,7 +141,7 @@ export default function UIAutomation() {
             <option value="fill">Isi Form</option>
             <option value="wait">Tunggu Elemen</option>
             <option value="validate">Validasi Teks</option>
-            <option value="assert-url">Validasi Url</option>
+            <option value="assert-url">Validasi URL</option>
             <option value="select">Pilih Data</option>
             <option value="scroll">Scroll</option>
           </select>
@@ -183,16 +183,23 @@ export default function UIAutomation() {
       )}
 
       {/* Tampilkan Screenshot */}
-      {screenshotResults.length > 0 && (
-        <div className="mt-6">
-          <h2 className="text-xl font-bold mb-2">Screenshot Hasil:</h2>
-          <div className="grid grid-cols-2 gap-4">
-            {screenshotResults.map((src, i) => (
-              <img key={i} src={src} alt={`Step ${i + 1}`} className="border p-2" />
-            ))}
-          </div>
-        </div>
-      )}
+      { screenshotResults.length > 0 && (
+  <div className="mt-6">
+    <h2 className="text-xl font-bold mb-2">Screenshot Hasil:</h2>
+    <div className="grid grid-cols-2 gap-4">
+      {screenshotResults.map((src, i) => (
+        <Image
+          key={i}
+          src={src}
+          alt={`Step ${i + 1}`}
+          width={300} // Sesuaikan dengan ukuran yang diinginkan
+          height={200} // Sesuaikan dengan ukuran yang diinginkan
+          className="border p-2"
+        />
+      ))}
+    </div>
+  </div>
+)}
     </div>
   );
 }
