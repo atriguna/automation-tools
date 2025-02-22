@@ -19,6 +19,9 @@ type StepResult = {
   error?: string;
 };
 
+// **Gunakan URL backend yang sesuai**
+const BACKEND_URL = "https://backend-automation-production-badd.up.railway.app";
+
 export default function UIAutomation() {
   const [url, setUrl] = useState<string>("");
   const [steps, setSteps] = useState<Step[]>([]);
@@ -57,7 +60,7 @@ export default function UIAutomation() {
           action: typeof row.action === "string" ? row.action.trim() : "",
           xpath: typeof row.xpath === "string" ? row.xpath.trim() : "",
           value: typeof row.value === "string" ? row.value.trim() : undefined,
-        }));        
+        }));
         setSteps(parsedSteps);
       },
     });
@@ -67,7 +70,7 @@ export default function UIAutomation() {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      const response = await fetch("https://backend-automation-production-badd.up.railway.app/api/run-automation", {
+      const response = await fetch(`${BACKEND_URL}/api/run-automation`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, steps, headless }),
@@ -75,6 +78,8 @@ export default function UIAutomation() {
 
       const result = await response.json();
       const parsedStepResults: StepResult[] = result.stepResults || [];
+
+      console.log("Step Results:", parsedStepResults); // Debugging output
 
       setScreenshotResults(parsedStepResults.map((step) => step.screenshotUrl || ""));
       setReportUrl(result.reportUrl || null);
@@ -116,10 +121,36 @@ export default function UIAutomation() {
         <label className="font-semibold">Headless Mode ({headless ? "ON" : "OFF"})</label>
       </div>
 
+      {/* Button Container */}
+      <div className="flex items-center gap-4 mt-4">
       {/* Tombol Tambah Step */}
-      <button onClick={addStep} className="bg-blue-500 text-white px-4 py-2 rounded mb-4">
-        Tambah Step
+      <button
+        onClick={addStep}
+        className="bg-blue-500 text-white px-4 py-2 rounded"
+      >
+      Tambah Step
       </button>
+
+      {/* Tombol Submit Automation */}
+      <button
+        onClick={handleSubmit}
+        className="bg-green-500 text-white px-4 py-2 rounded"
+        disabled={loading}
+      >
+        {loading ? "Running..." : "Submit Automation"}
+      </button>
+      {/* Lihat Hasil Automation */}
+      {reportUrl && (
+      <a
+        href={reportUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center text-blue-500 hover:underline ml-4"
+      >
+        🔍 Lihat Hasil Automation
+      </a>
+      )}
+      </div>
 
       {/* List Steps */}
       {steps.map((step, index) => (
@@ -166,40 +197,27 @@ export default function UIAutomation() {
         </div>
       ))}
 
-      {/* Submit Automation */}
-      <button
-        onClick={handleSubmit}
-        className="bg-green-500 text-white px-4 py-2 rounded w-full"
-        disabled={loading}
-      >
-        {loading ? "Running..." : "Submit Automation"}
-      </button>
-
-      {/* Lihat Hasil */}
-      {reportUrl && (
-        <a href={reportUrl} target="_blank" className="block mt-4 text-blue-500">
-          🔍 Lihat Hasil Automation
-        </a>
-      )}
 
       {/* Tampilkan Screenshot */}
-      { screenshotResults.length > 0 && (
-  <div className="mt-6">
-    <h2 className="text-xl font-bold mb-2">Screenshot Hasil:</h2>
-    <div className="grid grid-cols-2 gap-4">
-      {screenshotResults.map((src, i) => (
-        <Image
-          key={i}
-          src={src}
-          alt={`Step ${i + 1}`}
-          width={300} // Sesuaikan dengan ukuran yang diinginkan
-          height={200} // Sesuaikan dengan ukuran yang diinginkan
-          className="border p-2"
-        />
-      ))}
-    </div>
-  </div>
-)}
+      {screenshotResults.length > 0 && (
+        <div className="mt-6">
+          <h2 className="text-xl font-bold mb-2">Screenshot Hasil:</h2>
+          <div className="grid grid-cols-2 gap-4">
+            {screenshotResults.map((src, i) => (
+              <Image
+                key={i}
+                src={src}
+                alt={`Step ${i + 1}`}
+                width={300}
+                height={200}
+                className="border p-2"
+                referrerPolicy="no-referrer"
+                unoptimized // **Tambahkan ini jika gambar tetap tidak muncul**
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
